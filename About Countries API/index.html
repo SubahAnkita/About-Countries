@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Rest Countries API Table</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .search-container input[type="text"],
+        .search-container input[type="number"] {
+            padding: 5px;
+            width: 200px;
+        }
+
+        .search-container button {
+            padding: 5px 10px;
+            background-color: black;
+            color: white;
+        }
+
+        /* Styling for table header */
+        th {
+            background-color: black;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search">
+        <button onclick="searchCountries()">Search</button>
+        <input type="number" id="populationFilter" min="0" placeholder="Minimum Population">
+        <input type="number" id="populationFilterMax" min="0" placeholder="Maximum Population">
+        <button onclick="applyFilters()">Apply Filters</button>
+    </div>
+    <table id="countryTable">
+        <thead>
+            <!-- <tr>
+                <th onclick="sortTable('name')">Country</th>
+                <th onclick="sortTable('population')">Population</th>
+                <th onclick="sortTable('capital')">Capital</th>
+            </tr> -->
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        let countriesData = [];
+
+        fetch('https://restcountries.com/v2/all')
+            .then(response => response.json())
+            .then(data => {
+                countriesData = data;
+                populateTable(data);
+            })
+            .catch(error => console.log(error));
+
+        function populateTable(data) {
+            const tableBody = document.querySelector('#countryTable tbody');
+            tableBody.innerHTML = '';
+
+            const headlineRow = document.createElement('tr');
+            headlineRow.innerHTML = `<th>Country</th><th>Population</th><th>Capital</th>`;
+            tableBody.appendChild(headlineRow);
+
+            data.forEach(country => {
+                const { name, population, capital } = country;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${name}</td><td>${population}</td><td>${capital}</td>`;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function applyFilters() {
+            const minPopulation = document.getElementById('populationFilter').value;
+            const maxPopulation = document.getElementById('populationFilterMax').value;
+
+            const filteredData = countriesData.filter(country => {
+                if (minPopulation && maxPopulation) {
+                    return country.population >= minPopulation && country.population <= maxPopulation;
+                } else if (minPopulation) {
+                    return country.population >= minPopulation;
+                } else if (maxPopulation) {
+                    return country.population <= maxPopulation;
+                } else {
+                    return true;
+                }
+            });
+
+            populateTable(filteredData);
+        }
+
+        function sortTable(columnName) {
+            const columnIdx = Array.from(document.getElementById('countryTable').rows[0].cells).findIndex(cell => cell.textContent.toLowerCase() === columnName.toLowerCase());
+            const sortedData = [...countriesData].sort((a, b) => {
+                const valA = eval(`a.${columnName}`);
+                const valB = eval(`b.${columnName}`);
+
+                const valALower = typeof valA === 'string' ? valA.toLowerCase() : valA;
+                const valBLower = typeof valB === 'string' ? valB.toLowerCase() : valB;
+
+                if (valALower < valBLower) return -1;
+                if (valALower > valBLower) return 1;
+                return 0;
+            });
+
+            populateTable(sortedData);
+        }
+
+
+        function searchCountries() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const matchingCountries = countriesData.filter(country => country.name.toLowerCase().startsWith(searchTerm));
+            const remainingCountries = countriesData.filter(country => !country.name.toLowerCase().startsWith(searchTerm));
+            const sortedData = matchingCountries.concat(remainingCountries);
+            populateTable(sortedData);
+        }
+
+
+        document.getElementById('searchInput').addEventListener('input', () => {
+            searchCountries();
+        });
+
+    </script>
+</body>
+
+</html>
